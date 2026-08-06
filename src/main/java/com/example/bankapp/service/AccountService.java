@@ -3,13 +3,11 @@ package com.example.bankapp.service;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
-import com.example.bankapp.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -22,7 +20,7 @@ public class AccountService {
     private AccountRepository accountRepository;
 
     @Autowired
-    private TransactionRepository transactionRepository;
+    private TransactionService transactionService;
 
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -45,13 +43,7 @@ public class AccountService {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
-        Transaction transaction = new Transaction(
-                amount,
-                "Deposit",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        transactionService.recordDeposit(account, amount);
     }
 
     public void withdraw(Account account, BigDecimal amount) {
@@ -61,17 +53,11 @@ public class AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
 
-        Transaction transaction = new Transaction(
-                amount,
-                "Withdrawal",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        transactionService.recordWithdrawal(account, amount);
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
-        return transactionRepository.findByAccountId(account.getId());
+        return transactionService.getTransactionHistory(account);
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
@@ -91,21 +77,7 @@ public class AccountService {
         accountRepository.save(toAccount);
 
         // Create transaction records for both accounts
-        Transaction debitTransaction = new Transaction(
-                amount,
-                "Transfer Out to " + toAccount.getUsername(),
-                LocalDateTime.now(),
-                fromAccount
-        );
-        transactionRepository.save(debitTransaction);
-
-        Transaction creditTransaction = new Transaction(
-                amount,
-                "Transfer In from " + fromAccount.getUsername(),
-                LocalDateTime.now(),
-                toAccount
-        );
-        transactionRepository.save(creditTransaction);
+        transactionService.recordTransfer(fromAccount, toAccount, amount);
     }
 
 }
