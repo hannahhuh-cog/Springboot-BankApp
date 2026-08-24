@@ -26,6 +26,9 @@ pipeline {
         stage('Verify: Docker Image Tags') {
             steps {
                 script{
+                    if (!(params.DOCKER_TAG ==~ /^[A-Za-z0-9._-]+$/)) {
+                        error("Invalid DOCKER_TAG: only letters, digits, '.', '_' and '-' are allowed")
+                    }
                     echo "DOCKER TAG RECEIVED: ${params.DOCKER_TAG}"
                 }
             }
@@ -36,9 +39,9 @@ pipeline {
             steps{
                 script{
                     dir('kubernetes'){
-                        sh """
-                            sed -i -e 's|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${params.DOCKER_TAG}|g' bankapp-deployment.yaml
-                        """
+                        withEnv(["DOCKER_TAG=${params.DOCKER_TAG}"]){
+                            sh 'sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${DOCKER_TAG}|g" bankapp-deployment.yaml'
+                        }
                     }
                 }
             }

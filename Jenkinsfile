@@ -12,6 +12,16 @@ pipeline {
     
     stages {
         
+        stage("Validate: Build parameters"){
+            steps{
+                script{
+                    if (!(params.DOCKER_TAG ==~ /^[A-Za-z0-9._-]+$/)) {
+                        error("Invalid DOCKER_TAG: only letters, digits, '.', '_' and '-' are allowed")
+                    }
+                }
+            }
+        }
+
         stage("Workspace cleanup"){
             steps{
                 script{
